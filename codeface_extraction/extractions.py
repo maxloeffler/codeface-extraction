@@ -723,7 +723,7 @@ class FunctionImplementationRangeExtraction(Extraction):
 
 def fix_characters_in_string(text):
     """
-    Removes control characters such as \r\n \x1b \ufffd from string impl and returns a unicode
+    Removes control characters such as \r\n \x1b \\ufffd from string impl and returns a unicode
     string where all control characters have been replaced by a space.
     :param text: expects a unicode string
     :return: unicode string
@@ -742,7 +742,7 @@ def fix_characters_in_string(text):
 
     # remove all kinds of control characters and emojis
     # see: https://www.fileformat.info/info/unicode/category/index.htm
-    new_text = u"".join(ch if unicodedata.category(ch)[0] != "C" else " " for ch in new_text.decode("unicode-escape"))
+    new_text = "".join(ch if unicodedata.category(ch)[0] != "C" else " " for ch in new_text.decode("unicode-escape"))
 
     return new_text
 
@@ -765,10 +765,10 @@ def fix_name_encoding(name):
 
     try:
         # Apply correct encoding and return unicode string
-        return unicode(make_header(info))
+        return str(make_header(info))
     except UnicodeDecodeError:
         # Undo utf-8 encoding and return unicode string
-        return unicode(name.decode('utf-8'))
+        return str(name.decode('utf-8'))
     except LookupError:
         # Encoding not found, return string as is
         return name

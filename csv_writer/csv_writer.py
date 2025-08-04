@@ -28,7 +28,7 @@ def __encode(line):
 
     lineres = ()  # re-encode column if it is unicode
     for column in line:
-        if type(column) is unicode:
+        if type(column) is str:
             lineres += (column.encode("utf-8"),)
         else:
             lineres += (column,)

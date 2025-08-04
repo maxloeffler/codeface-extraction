@@ -44,8 +44,9 @@ from csv_writer import csv_writer
 from jira import JIRA
 from jira.exceptions import JIRAError
 from time import sleep
+import importlib
 
-reload(sys)
+importlib.reload(sys)
 sys.setdefaultencoding("utf-8")
 
 # global counter for JIRA requests to make sure to not exceed the request limit
@@ -65,7 +66,7 @@ def run():
 
     # parse arguments
     args = parser.parse_args(sys.argv[1:])
-    __codeface_conf, __project_conf = map(os.path.abspath, (args.config, args.project))
+    __codeface_conf, __project_conf = list(map(os.path.abspath, (args.config, args.project)))
 
     # create configuration
     __conf = Configuration.load(__codeface_conf, __project_conf)
@@ -114,9 +115,9 @@ def run():
         processed_issues.extend(issues)
 
     # 4) insert referenced_by events into issue histories
-    for issue_id in referenced_bys.keys():
+    for issue_id in list(referenced_bys.keys()):
         # obtain list of issues which have the current issue id
-        referenced_issue = list(filter(lambda issue: issue["externalId"] == issue_id, processed_issues))
+        referenced_issue = list([issue for issue in processed_issues if issue["externalId"] == issue_id])
         if len(referenced_issue) > 0:
             if len(referenced_issue) > 1:
                 log.warning("Ambiguous issue id " + issue_id + " found in the issue list.")
@@ -235,21 +236,21 @@ def merge_user_with_user_from_csv(user, persons):
     """
 
     new_user = dict()
-    name_utf8 = unicode(user["name"]).encode("utf-8")
-    username_utf8 = unicode(user["username"].lower()).encode("utf-8")
+    name_utf8 = str(user["name"]).encode("utf-8")
+    username_utf8 = str(user["username"].lower()).encode("utf-8")
 
-    if username_utf8 in persons["by_username"].keys():
+    if username_utf8 in list(persons["by_username"].keys()):
         new_user["username"] = username_utf8
-        new_user["name"] = unicode(persons["by_username"].get(username_utf8)[0]).encode("utf-8")
-        new_user["email"] = unicode(persons["by_username"].get(username_utf8)[1]).encode("utf-8")
-    elif name_utf8 in persons["by_name"].keys():
+        new_user["name"] = str(persons["by_username"].get(username_utf8)[0]).encode("utf-8")
+        new_user["email"] = str(persons["by_username"].get(username_utf8)[1]).encode("utf-8")
+    elif name_utf8 in list(persons["by_name"].keys()):
         new_user["username"] = username_utf8
-        new_user["name"] = unicode(persons["by_name"].get(name_utf8)[0]).encode("utf-8")
-        new_user["email"] = unicode(persons["by_name"].get(name_utf8)[1]).encode("utf-8")
+        new_user["name"] = str(persons["by_name"].get(name_utf8)[0]).encode("utf-8")
+        new_user["email"] = str(persons["by_name"].get(name_utf8)[1]).encode("utf-8")
     else:
         new_user["username"] = username_utf8
         new_user["name"] = name_utf8
-        new_user["email"] = unicode(user["email"]).encode("utf-8")
+        new_user["email"] = str(user["email"]).encode("utf-8")
         log.warning("User not in csv-file: " + str(user))
 
     log.info("current User: " + str(user) + ",    new user: " + str(new_user))
@@ -605,10 +606,10 @@ def insert_user_data(issues, conf):
     def get_id_and_update_user(user, buffer_db_ids=user_id_buffer):
         # fix encoding for name and e-mail address
         if user["name"] is not None and user["name"] != "":
-            name = unicode(user["name"]).encode("utf-8")
+            name = str(user["name"]).encode("utf-8")
         else:
-            name = unicode(user["username"]).encode("utf-8")
-        mail = unicode(user["email"]).encode("utf-8")  # empty
+            name = str(user["username"]).encode("utf-8")
+        mail = str(user["email"]).encode("utf-8")  # empty
         # construct string for ID service and send query
         user_string = get_user_string(name, mail)
 
@@ -1000,8 +1001,8 @@ def load_csv(source_folder):
         :return: the first existing file name, None otherwise
         """
 
-        filenames = map(lambda fi: os.path.join(source_folder, fi), filenames)
-        existing = map(lambda fi: os.path.exists(fi), filenames)
+        filenames = [os.path.join(source_folder, fi) for fi in filenames]
+        existing = [os.path.exists(fi) for fi in filenames]
         first = next((i for (i, x) in enumerate(existing) if x), None)
 
         if first is not None:
@@ -1026,11 +1027,11 @@ def load_csv(source_folder):
         persons_by_username = {}
         persons_by_name = {}
         for row in person_data:
-            if not row["AuthorID"] in persons_by_username.keys():
-                author_id_utf8 = unicode(row["AuthorID"]).encode("utf-8")
+            if not row["AuthorID"] in list(persons_by_username.keys()):
+                author_id_utf8 = str(row["AuthorID"]).encode("utf-8")
                 persons_by_username[author_id_utf8] = (row["AuthorName"], row["userEmail"])
-            if not row["AuthorName"] in persons_by_name.keys():
-                author_name_utf8 = unicode(row["AuthorName"]).encode("utf-8")
+            if not row["AuthorName"] in list(persons_by_name.keys()):
+                author_name_utf8 = str(row["AuthorName"]).encode("utf-8")
                 persons_by_name[author_name_utf8] = (row["AuthorName"], row["userEmail"])
 
         persons = dict()

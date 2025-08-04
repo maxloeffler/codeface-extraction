@@ -469,7 +469,7 @@ def run():
     # process arguments
     # - First make all the args absolute
     __resdir = abspath(args.resdir)
-    __codeface_conf, __project_conf = map(abspath, (args.config, args.project))
+    __codeface_conf, __project_conf = list(map(abspath, (args.config, args.project)))
     __backup_data = args.backup
 
     # load configuration

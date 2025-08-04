@@ -28,7 +28,7 @@ from codeface.cli import log
 from codeface.configuration import Configuration
 from codeface.dbmanager import DBManager
 
-import extractions
+from . import extractions
 from csv_writer import csv_writer
 
 
@@ -119,7 +119,7 @@ def run():
     # process arguments
     # - First make all the args absolute
     __resdir = abspath(args.resdir)
-    __codeface_conf, __project_conf = map(abspath, (args.config, args.project))
+    __codeface_conf, __project_conf = list(map(abspath, (args.config, args.project)))
     __extract_commit_messages = args.commit_messages
     __extract_impl = args.implementation
     __extract_on_range_level = args.range

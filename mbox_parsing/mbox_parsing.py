@@ -69,7 +69,7 @@ def __get_index(mbox, mbox_path, results_folder, schema, reindex):
         writer = ix.writer()
         # add all messages to index
         for message in mbox:
-            writer.add_document(messageID=unicode(message['message-id']), content=__mbox_getbody(message))
+            writer.add_document(messageID=str(message['message-id']), content=__mbox_getbody(message))
         writer.commit()
         log.devinfo("Index created, parsing will begin now.")
     else:
@@ -136,7 +136,7 @@ def __mbox_getbody(message):
             "An image or some other content has been found that cannot be indexed. Message is given an empty body.")
         body = ' '
 
-    return unicode(body, errors="replace")
+    return str(body, errors="replace")
 
 
 def __parse_execute(artifact, schema, my_index, include_filepath):
@@ -247,7 +247,7 @@ def run():
     args = parser.parse_args(sys.argv[1:])
     __resdir = abspath(args.resdir)
     __maildir = abspath(args.maildir)
-    __codeface_conf, __project_conf = map(abspath, (args.config, args.project))
+    __codeface_conf, __project_conf = list(map(abspath, (args.config, args.project)))
 
     # initialize configuration
     __conf = Configuration.load(__codeface_conf, __project_conf)

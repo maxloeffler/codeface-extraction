@@ -24,11 +24,11 @@ This file is able to extract Github issue data from json files.
 """
 
 import argparse
-import httplib
+import http.client
 import json
 import os
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from datetime import datetime, timedelta
 
 import operator
@@ -61,7 +61,7 @@ def run():
 
     # parse arguments
     args = parser.parse_args(sys.argv[1:])
-    __codeface_conf, __project_conf = map(os.path.abspath, (args.config, args.project))
+    __codeface_conf, __project_conf = list(map(os.path.abspath, (args.config, args.project)))
 
     # create configuration
     __conf = Configuration.load(__codeface_conf, __project_conf)
@@ -210,7 +210,7 @@ def update_user_dict(user_dict, user):
     if user is None:
         user = create_deleted_user()
 
-    if not user["username"] in user_dict.keys():
+    if not user["username"] in list(user_dict.keys()):
         if not user["username"] is None and not user["username"] == "":
             user_dict[user["username"]] = user
     else:
@@ -340,7 +340,7 @@ def merge_issue_events(issue_data):
 
             # as we cannot update the referenced issue during iterating over all issues, we need to save the
             # referenced_by event for the referenced issue temporarily
-            if rel_issue["number"] in issue_data_to_update.keys():
+            if rel_issue["number"] in list(issue_data_to_update.keys()):
                 issue_data_to_update[rel_issue["number"]]["eventsList"].append(referenced_issue_event)
             else:
                 ref = dict()
@@ -500,7 +500,7 @@ def merge_issue_events(issue_data):
         issue["eventsList"] = sorted(issue["eventsList"], key=lambda k: k["created_at"])
 
     # updates all the issues by the temporarily stored referenced_by events
-    for key, value in issue_data_to_update.iteritems():
+    for key, value in issue_data_to_update.items():
         for issue in issue_data:
             if issue["number"] == value["number"]:
                 issue["eventsList"] = issue["eventsList"] + value["eventsList"]
@@ -683,14 +683,14 @@ def insert_user_data(issues, conf, resdir):
             return "{name} <{email}>".format(name=name, email=email)
 
     def get_id_and_update_user(user, buffer_db_ids=user_id_buffer, buffer_usernames=username_id_buffer):
-        username = unicode(user["username"]).encode("utf-8")
+        username = str(user["username"]).encode("utf-8")
 
         # fix encoding for name and e-mail address
         if user["name"] is not None:
-            name = unicode(user["name"]).encode("utf-8")
+            name = str(user["name"]).encode("utf-8")
         else:
             name = username
-        mail = unicode(user["email"]).encode("utf-8")
+        mail = str(user["email"]).encode("utf-8")
         # construct string for ID service and send query
         user_string = get_user_string(name, mail)
 

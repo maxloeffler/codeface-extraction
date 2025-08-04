@@ -343,7 +343,7 @@ def run_anonymization(conf, resdir):
             gender_data_new = []
 
             for author in gender_data:
-                if author[0] in author_to_anonymized_author_gender.keys():
+                if author[0] in list(author_to_anonymized_author_gender.keys()):
                     new_person = author_to_anonymized_author_gender[author[0]]
                     author[0] = new_person[0]
                     gender_data_new.append(author)
@@ -395,7 +395,7 @@ def run():
     # process arguments
     # - First make all the args absolute
     __resdir = abspath(args.resdir)
-    __codeface_conf, __project_conf = map(abspath, (args.config, args.project))
+    __codeface_conf, __project_conf = list(map(abspath, (args.config, args.project)))
 
     # load configuration
     __conf = Configuration.load(__codeface_conf, __project_conf)

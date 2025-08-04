@@ -19,10 +19,10 @@ This file is able to extract information on bot/human users from csv files.
 """
 
 import argparse
-import httplib
+import http.client
 import os
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import operator
 from codeface.cli import log
@@ -39,7 +39,7 @@ def run():
 
     # parse arguments
     args = parser.parse_args(sys.argv[1:])
-    __codeface_conf, __project_conf = map(os.path.abspath, (args.config, args.project))
+    __codeface_conf, __project_conf = list(map(os.path.abspath, (args.config, args.project)))
 
     # create configuration
     __conf = Configuration.load(__codeface_conf, __project_conf)
@@ -192,7 +192,7 @@ def add_user_data(bot_data, user_data, known_bots_file):
             continue
 
         # get user information if available
-        if user[0] in user_buffer.keys():
+        if user[0] in list(user_buffer.keys()):
             bot_reduced["user"] = user_buffer[user[0]]
             bot_reduced["prediction"] = user[-1]
             bot_data_reduced.append(bot_reduced)
