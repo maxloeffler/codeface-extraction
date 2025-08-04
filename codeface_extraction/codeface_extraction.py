@@ -22,15 +22,16 @@ This file is able to extract developer--artifact relations from the Codeface dat
 
 import argparse
 import sys
+from logging import getLogger
 from os.path import abspath
-
-from codeface.cli import log
-from codeface.configuration import Configuration
-from codeface.dbmanager import DBManager
 
 from . import extractions
 from csv_writer import csv_writer
+from codeface.dbmanager import DBManager
+from codeface.configuration import Configuration
 
+# create logger
+log = getLogger(__name__)
 
 ##
 # RUN FOR ALL PROJECTS
