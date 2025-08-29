@@ -19,15 +19,17 @@ Configuration module for codeface
 Encapsulates a configuration as an immutable dict
 '''
 
+from __future__ import absolute_import
 import yaml
 from collections.abc import Mapping
+from six.moves import range
 from logging import getLogger
 
-from tempfile import NamedTemporaryFile
-from codeface.linktype import LinkType
+from codeface_utils.linktype import LinkType
 
-# create logger
+
 log = getLogger(__name__)
+from tempfile import NamedTemporaryFile
 
 class ConfigurationError(Exception):
     '''Raised if any part of the configuration is malformed'''
@@ -39,8 +41,8 @@ class Configuration(Mapping):
     '''
 
     GLOBAL_KEYS = ('dbname', 'dbhost', 'dbuser', 'dbpwd',
-            'idServiceHostname', 'idServicePort')
-    GLOBAL_OPTIONAL_KEYS = ('dbport',)
+                   'idServiceHostname', 'idServicePort')
+    GLOBAL_OPTIONAL_KEYS = ('dbport', 'useCsv')
     PROJECT_KEYS = ('project', 'repo', 'tagging', 'revisions', 'rcs')
     OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
                      'proxyHost', 'proxyPort', 'bugsProjectName',
@@ -48,7 +50,8 @@ class Configuration(Mapping):
                      'issueTrackerURL', 'issueTrackerProject',
                      'issueTrackerUser', 'issueTrackerPassword',
                      'understand', 'sloccount', 'windowSize', 'numWindows',
-                     'qualityType', 'communicationType', 'artifactType', 'dependencyType')
+                     'qualityType', 'communicationType', 'artifactType', 'dependencyType',
+                     'csvFile', 'csvSeparator')
     ALL_KEYS = set(GLOBAL_KEYS + GLOBAL_OPTIONAL_KEYS + PROJECT_KEYS +
                    OPTIONAL_KEYS)
 
@@ -64,19 +67,19 @@ class Configuration(Mapping):
         self._conf_file_loc = None
 
     @classmethod
-    def load(cls, global_conffile, local_conffile=None):
+    def load(self, global_conffile, local_conffile=None):
         '''
         Load configuration from global/local files
         '''
         c = Configuration()
         log.info("Loading global configuration file '{}'".
                 format(global_conffile))
-        cls._global_conf = c._load(global_conffile)
+        self._global_conf = c._load(global_conffile)
         c._conf.update(c._global_conf)
         if local_conffile:
             log.info("Loading project configuration file '{}'".
                     format(local_conffile))
-            cls._project_conf = c._load(local_conffile)
+            self._project_conf = c._load(local_conffile)
             c._conf.update(c._project_conf)
         else:
             log.info("Not loading project configuration file!")
@@ -87,7 +90,7 @@ class Configuration(Mapping):
     def _load(self, filename):
         '''Helper function that checks loading errors and logs them'''
         try:
-            return yaml.load(open(filename), Loader=yaml.SafeLoader)
+            return yaml.load(open(filename, 'r'), Loader=yaml.SafeLoader)
         except IOError:
             log.exception("Could not open configuration file '{}'".
                     format(filename))
@@ -100,7 +103,7 @@ class Configuration(Mapping):
     def _initialize(self):
         '''Infer missing values in the configuration'''
         if "rcs" not in self:
-            self._conf["rcs"] = [None for _ in range(len(self["revisions"]))]
+            self._conf["rcs"] = [None for x in range(len(self["revisions"]))]
 
         if "mailinglists" not in self:
             self._conf["mailinglists"] = []
@@ -129,12 +132,12 @@ class Configuration(Mapping):
                 raise ConfigurationError('Invalid configuration key.')
 
         for key in self.GLOBAL_KEYS + self.PROJECT_KEYS:
-            if key not in self:
+            if not key in self:
                 log.critical("Required key '{}' missing in configuration!"
                         ''.format(key))
                 raise ConfigurationError('Missing configuration key.')
 
-        if self['tagging'] not in LinkType.get_all_link_types():
+        if not self['tagging'] in LinkType.get_all_link_types():
             log.critical('Unsupported tagging mechanism specified!')
             raise ConfigurationError('Unsupported tagging mechanism.')
 
@@ -146,6 +149,14 @@ class Configuration(Mapping):
                 "lengths differ! Found {0} revisions and {1} release "
                 "candidates.".format(len(self["revisions"]), len(self["rcs"])))
             raise ConfigurationError('Malformed configuration.')
+
+        if self["useCsv"]:
+            if not "csvFile" in self:
+                log.critical("Malformed configuration: useCsv is true, but "
+                    "csvFile is not specified.")
+                raise ConfigurationError('Malformed configuration.')
+            if not "csvSeparator" in self:
+                self["csvSeparator"] = ","
 
         unknown_keys = [k for k in self if k not in self.ALL_KEYS]
         for key in unknown_keys:

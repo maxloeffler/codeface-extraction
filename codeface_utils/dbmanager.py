@@ -17,10 +17,15 @@
 
 # Thin sql database wrapper
 
+from __future__ import absolute_import
+from __future__ import print_function
 import MySQLdb as mdb
-from datetime import datetime, timezone
-from logging import getLogger
+import time
+from datetime import datetime
+from logging import getLogger;
 from contextlib import contextmanager
+from six.moves import range
+from six.moves import zip
 
 # create logger
 log = getLogger(__name__)
@@ -44,13 +49,28 @@ class DBManager:
     """This class provides an interface to the codeface sql database."""
 
     def __init__(self, conf):
+
+        self.conf = conf
+        self.__openConnection(conf)
+
+        # max_packet_size = 1024 * 1024 * 512
+        # self.doExec("SET GLOBAL max_allowed_packet=%s", (max_packet_size,))
+
+    def __del__(self):
+        if self.con != None:
+            self.con.close()
+
+    def __openConnection(self, conf):
         try:
             self.con = None
             self.con = mdb.Connection(host=conf["dbhost"],
                                       port=conf["dbport"],
                                       user=conf["dbuser"],
                                       passwd=conf["dbpwd"],
-                                      db=conf["dbname"])
+                                      db=conf["dbname"],
+                                      charset="utf8",
+                                      use_unicode=True)
+            self.cur = self.con.cursor()
             log.debug(
                 "Establishing MySQL connection to "
                 "{c[dbuser]}@{c[dbhost]}:{c[dbport]}, DB '{c[dbname]}'"
@@ -62,14 +82,7 @@ class DBManager:
                 ": {e[1]} ({e[0]})"
                 "".format(c=conf, e=e.args))
             raise
-        self.cur = self.con.cursor()
 
-        max_packet_size = 1024 * 1024 * 256
-        self.doExec("SET GLOBAL max_allowed_packet=%s", (max_packet_size,))
-
-    def __del__(self):
-        if self.con is not None:
-            self.con.close()
 
     def doExec(self, stmt, args=None):
         with _log_db_error(stmt, args):
@@ -87,21 +100,53 @@ class DBManager:
                     if dbe.args[0] == 1213:  # Deadlock! retry...
                         log.warning("Recoverable deadlock in MySQL - retrying " \
                                     "(attempt {}).".format(retryCount))
+                    elif dbe.args[0] == 2003:  # Can't connect to MySQL server
+                        log.warning("Can't connect to MySQL server - retrying " \
+                                    "(attempt {}).".format(retryCount))
+                        time.sleep(60)
+                        log.warning("Try opening new connection")
+                        self.con.close()
+                        log.warning("Connection successfully closed")
+                        self.__openConnection(self.conf)
+                        log.warning("Opening new connection successful")
                     elif dbe.args[0] == 2006:  # Server gone away...
                         log.warning("MySQL Server gone away, trying to reconnect " \
                                     "(attempt {}).".format(retryCount))
-                        self.con.ping(True)
-                    elif dbe.args[0] == 2013:  # Lost connection to MySQL server during query...
+                        time.sleep(60)
+                        log.warning("Try opening new connection")
+                        self.con.close()
+                        log.warning("Connection successfully closed")
+                        self.__openConnection(self.conf)
+                        log.warning("Opening new connection successful")
+                    elif dbe.args[0] == 2013 or dbe.args[0] == 1053:  # Lost connection to MySQL server during query | Server shutdown in progress
                         log.warning("Lost connection to MySQL server during query, " \
                                     "trying to reconnect (attempt {}).".format(retryCount))
+                        time.sleep(60)
+                        log.warning("Try opening new connection")
+                        self.con.close()
+                        log.warning("Connection successfully closed")
+                        self.__openConnection(self.conf)
+                        log.warning("Opening new connection successful")
+                    elif dbe.args[0] == 1153:  # Got a packet bigger than 'max_allowed_packet' bytes
+                        log.warning("Sent a too big packet ({lnos} lines), retrying with smaller packets.".format(
+                            lnos=len(args)))
+                        ## split package into smaller packets of size 'chunk_size'
+                        chunk_size = 100
+                        args_list = [args[i:i + chunk_size] for i in range(0, len(args), chunk_size)]
+                        ## retrying
+                        time.sleep(60)
                         self.con.ping(True)
+                        for chunk in args_list:
+                            self.doExec(stmt, chunk)
                     else:
+                        self.con.close()
                         raise
 
-            # Give up after ten retry attempts and propagate the
-            # problem to the caller. Callers can either fix the problem with
-            # a different query, or the analysis fails
+            # Give up after too many retry attempts and propagate the
+            # problem to the caller. Either it's fixed with a different
+            # query, or the analysis fails
             log.error("DB access failed after ten attempts, giving up")
+            self.con.close()
             raise
 
     def doFetchAll(self):
@@ -203,13 +248,18 @@ class DBManager:
                             format(tag, type, self.cur.rowcount))
         return self.doFetchAll()[0][0]
 
-    def getCommitId(self, projectId, commitHash):
-        self.doExec("SELECT id FROM commit" +
-                    " WHERE commitHash=%s AND projectId=%s"
-                    , (commitHash, projectId))
+    def getCommitId(self, projectId, commitHash, releaseRangeID=None):
+        stmt = "SELECT id FROM commit WHERE commitHash=%s AND projectId=%s"
+        args = (commitHash, projectId)
+
+        if (releaseRangeID):
+            stmt += " AND releaseRangeId=%s"
+            args += (releaseRangeID, )
+
+        self.doExec(stmt, args)
         if self.cur.rowcount == 0:
-            raise Exception("Commit from project {} not found!".
-                            format(projectId))
+            raise Exception("Commit {0} from project {1} not found!".
+                            format(commitHash, projectId))
         return self.doFetchAll()[0][0]
 
     def getRevisionID(self, projectID, tag):
@@ -394,7 +444,7 @@ class DBManager:
             previous_rev = None
             if len(tags) > 0:
                 previous_rev = tags[-1]
-            for rev, rc in list(zip(revs, rcs))[len(tags):]:
+            for rev, rc in zip(revs, rcs)[len(tags):]:
                 self.doExecCommit("INSERT INTO release_timeline "
                                   "(type, tag, projectId) "
                                   "VALUES (%s, %s, %s)",
@@ -428,4 +478,4 @@ class DBManager:
 
 def tstamp_to_sql(tstamp):
     """Convert a Unix timestamp into an SQL compatible DateTime string"""
-    return (datetime.fromtimestamp(tstamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
+    return (datetime.utcfromtimestamp(tstamp).strftime("%Y-%m-%d %H:%M:%S"))

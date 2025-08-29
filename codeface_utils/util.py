@@ -17,6 +17,8 @@
 Utility functions for running external commands
 '''
 
+from __future__ import absolute_import
+import logging; log = logging.getLogger(__name__)
 import os
 import os.path
 import re
@@ -24,19 +26,24 @@ import shutil
 import signal
 import sys
 import traceback
+import unicodedata
 from collections import OrderedDict, namedtuple
 from glob import glob
 from math import sqrt
-from multiprocessing import Process, Queue, Lock
-from pkg_resources import resource_filename
+from multiprocessing import Process, Queue, JoinableQueue, Lock
+from pickle import dumps, PicklingError
+from importlib.resources import files
 from subprocess import Popen, PIPE
 from tempfile import NamedTemporaryFile, mkdtemp
 from time import sleep
 from threading import enumerate as threading_enumerate
-from queue import Empty
+from six.moves.queue import Empty
 from datetime import timedelta, datetime
-import logging
-log = logging.getLogger(__name__)
+from ftfy import fix_encoding
+from six.moves import map
+import six
+from six.moves import range
+from six.moves import zip
 
 # Represents a job submitted to the batch pool.
 BatchJobTuple = namedtuple('BatchJobTuple', ['id', 'func', 'args', 'kwargs',
@@ -150,10 +157,10 @@ class BatchJobPool(object):
             # Terminate and join the workers
             # Wait 100ms to allow backtraces to be logged
             sleep(0.1)
-            log.devinfo("Terminating workers...")
+            log.info("Terminating workers...")
             for w in self.workers:
                 w.terminate()
-            log.devinfo("Workers terminated.")
+            log.info("Workers terminated.")
 
 def batchjob_worker_function(work_queue, done_queue):
     '''
@@ -205,7 +212,7 @@ def handle_sigint(signal, frame):
     with l:
         log.fatal("CTRL-C pressed!")
         for c in get_stack_dump():
-            log.devinfo(c)
+            log.info(c)
     # This call raises a SystemExit exception in the
     # stack frame that was interrupted by the signal
     # For the main thread, this is what we want.
@@ -216,12 +223,12 @@ def handle_sigint(signal, frame):
 def handle_sigint_silent(signal, frame):
     with l:
         for c in get_stack_dump():
-            log.devinfo(c)
+            log.info(c)
     logging.shutdown()
     # Since we want to terminate worker threads with prejudice,
     # we use os._exit, which directly terminates the process.
     # otherwise the worker try/catch will also catch the SystemExit
-    os.exit_(-1)
+    os._exit(-1)
 
 def handle_sigterm(signal, frame):
     # Since we want to terminate worker threads with prejudice,
@@ -290,7 +297,7 @@ def _convert_dot_file(dotfile):
     '''
     res = []
     edges = {}
-    edge_spec = re.compile("\s+(\d+) -> (\d+);")
+    edge_spec = re.compile(r"\s+(\d+) -> (\d+);")
 
     file = open(dotfile, "r")
     lines = [line.strip("\n") for line in file]
@@ -334,12 +341,12 @@ def layout_graph(filename):
     os.unlink(out.name)
 
 def generate_report(start_rev, end_rev, resdir):
-    log.devinfo("  -> Generating report")
+    log.info("  -> Generating report")
     report_base = "report-{0}_{1}".format(start_rev, end_rev)
 
     # Run perl script to generate report LaTeX file
     cmd = []
-    cmd.append(resource_filename(__name__, "perl/create_report.pl"))
+    cmd.append(files(__package__).joinpath("perl/create_report.pl"))
     cmd.append(resdir)
     cmd.append("{0}--{1}".format(start_rev, end_rev))
     with open(os.path.join(resdir, report_base + ".tex"), 'w') as f:
@@ -376,20 +383,20 @@ def generate_reports(start_rev, end_rev, range_resdir):
 
 def check4ctags():
     # check if the appropriate ctags is installed on the system
-    prog_name    = 'Exuberant Ctags'
-    prog_version = 'Exuberant Ctags 5.9~svn20110310'
-    cmd = "ctags-exuberant --version".split()
+    prog_name    = 'Universal Ctags'
+    prog_version = 'Universal Ctags 5.9.0, Copyright (C) 2015 Universal Ctags Team'
+    cmd = "ctags-universal --version".split()
 
     res = execute_command(cmd, None)
 
     if not(res.startswith(prog_name)):
         log.error("program '{0}' does not exist".format(prog_name))
-        raise Exception("ctags-exuberant not found")
+        raise Exception("ctags-universal not found")
 
     if not(res.startswith(prog_version)):
         # TODO: change this to use standard mechanism for error logging
         log.error("Ctags version '{0}' not found".format(prog_version))
-        raise Exception("Incompatible ctags-exuberant version")
+        raise Exception("Incompatible ctags-universal version")
 
 
 def check4cppstats():
@@ -454,9 +461,9 @@ def get_analysis_windows(conf):
     window_size_months = 3
     num_window = -1
 
-    if "windowSize" in conf.keys():
+    if "windowSize" in list(conf.keys()):
         window_size_months = conf["windowSize"]
-    if "numWindows" in conf.keys():
+    if "numWindows" in list(conf.keys()):
         num_window = conf["numWindows"]
 
     return window_size_months, num_window
@@ -473,11 +480,26 @@ def generate_analysis_windows(repo, window_size_months):
     latest_date_result = execute_command(cmd_date).splitlines()[0]
     latest_commit = parse_iso_git_date(latest_date_result)
 
+    cmd_root_commit_dates = 'git --git-dir={0} log --max-parents=0 --format=%ad  --date=iso8601'\
+        .format(repo).split()
+    root_commit_dates_result = execute_command(cmd_root_commit_dates).splitlines()
+    earliest_root_commit_date = min([parse_iso_git_date(root_commit) for root_commit in root_commit_dates_result])
+
     print_fmt = "%Y-%m-%dT%H:%M:%S+0000"
     month = timedelta(days=30)
 
     def get_before_arg(num_months):
         date = latest_commit - num_months * month
+
+        # Due to a bug in git, broken author information in commit objects can lead to a timestamp of 0 when using the
+        # --before option although the dates themselves are not broken and can be parsed without problems.
+        # For more details, see the whole thread conversation on the git mailing list here:
+        # https://lore.kernel.org/git/7728e059-d58d-cce7-c011-fbc16eb22fb9@cs.uni-saarland.de/
+        # To avoid running into an infinite while loop below (due to timestamps being 0), check if the date is earlier
+        # than the date of the earliest root commit and break if this is the case.
+        if date < earliest_root_commit_date:
+            raise ValueError("The before-arg date is earlier than the earliest commit in the repository.")
+
         return '--before=' + date.strftime(print_fmt)
 
     revs = []
@@ -491,13 +513,20 @@ def generate_analysis_windows(repo, window_size_months):
     revs.extend(rev_end)
 
     while start != end:
-        cmd = cmd_base_max1 + [get_before_arg(start)]
-        rev_start = execute_command(cmd).splitlines()
+
+        try:
+            cmd = cmd_base_max1 + [get_before_arg(start)]
+            rev_start = execute_command(cmd).splitlines()
+        except ValueError as ve:
+            rev_start = []
+            log.info("rev_start would be earlier than earliest root commit. Start at initial commit instead...")
 
         if len(rev_start) == 0:
             start = end
-            cmd = cmd_base + ['--reverse']
-            rev_start = [execute_command(cmd).splitlines()[0]]
+            #cmd = cmd_base + ['--reverse']
+            #rev_start = [execute_command(cmd).splitlines()[0]]
+            cmd = cmd_base + ['--max-parents=0']
+            rev_start = [execute_command(cmd).splitlines()[-1]]
         else:
             end = start
             start = end + window_size_months
@@ -525,3 +554,79 @@ def generate_analysis_windows(repo, window_size_months):
     rcs = [None for x in range(len(revs))]
 
     return revs_hash, rcs, revs_date
+
+
+def encode_as_utf8(string):
+    """
+    Encode the given string properly in UTF-8,
+    independent from its internal representation (str or unicode).
+
+    This function removes any control characters and four-byte-encoded unicode characters and replaces them
+    with " ". (Four-byte-encoded unicode characters do not work with 'utf8' encoding of MySQL.)
+
+    :param string: any string
+    :return: the UTF-8 encoded string of type str
+    """
+
+    try:
+        string = string.decode("utf-8")
+    except:
+        # if we have a string, we transform it to unicode
+        if isinstance(string, str):
+            string = six.text_type(string, "unicode-escape", errors="replace")
+
+    ## maybe not a string/unicode at all, return rightaway
+    if not isinstance(string, six.text_type):
+        return string
+
+    # convert to real unicode-utf8 encoded string, fix_text ensures proper encoding
+    new_string = fix_encoding(string)
+
+    # remove unicode characters from "Specials" block
+    # see: https://www.compart.com/en/unicode/block/U+FFF0
+    new_string = re.sub(r"\\ufff.", " ", new_string.encode("unicode-escape"))
+
+    # remove all kinds of control characters and emojis
+    # see: https://www.fileformat.info/info/unicode/category/index.htm
+    new_string = u"".join(ch if unicodedata.category(ch)[0] != "C" else " " for ch in new_string.decode("unicode-escape"))
+
+    new_string = new_string.encode("utf-8")
+
+    # replace any 4-byte characters with a single space (previously: four_byte_replacement)
+    try:
+        # UCS-4 build
+        four_byte_regex = re.compile(u"[\U00010000-\U0010ffff]")
+    except re.error:
+        # UCS-2 build
+        four_byte_regex = re.compile(u"[\uD800-\uDBFF][\uDC00-\uDFFF]")
+
+    four_byte_replacement = r" "  # r":4bytereplacement:"
+    new_string = four_byte_regex.sub(four_byte_replacement, new_string.decode("utf-8")).encode("utf-8")
+
+    return str(new_string)
+
+
+def encode_items_as_utf8(items):
+    """
+    Encode the given list/tuple/dict of strings properly in UTF-8,
+    independent from its internal representation (str or unicode).
+
+    This function uses encode_as_utf8(string) internally.
+
+    :param string: any string
+    :return: the UTF-8 encoded string of type str
+    """
+
+    # unpack values if we have a dictionary
+    items_unpacked = items
+    if isinstance(items, dict):
+        items_unpacked = list(items.values())
+
+    # encode each item as UTF-8 properly
+    items_enc = list(map(encode_as_utf8, items_unpacked))
+
+    # add key for dict again
+    if isinstance(items, dict):
+        items_enc = dict(zip(list(items.keys()), items_enc))
+
+    return items_enc
