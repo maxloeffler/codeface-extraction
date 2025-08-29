@@ -36,8 +36,6 @@ from codeface_utils.cluster.PersonInfo import PersonInfo
 class idManager(ABC):
 
     def __init__(self):
-        self.subsys_names = []
-
         # Cache identical requests to the server
         self._cache = {}
 
@@ -52,7 +50,7 @@ class idManager(ABC):
         self.commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
 
     @abstractmethod
-    def _query_user_id(self, person_id):
+    def _query_user_id(self, name, email):
         pass
 
     @abstractmethod
@@ -75,7 +73,7 @@ class idManager(ABC):
         # Construct a local instance of PersonInfo for the contributor
         # if it is not yet available
         if (ID not in self.persons):
-            self.persons[ID] = PersonInfo(self.subsys_names, ID, name, email)
+            self.persons[ID] = PersonInfo(ID, name, email)
 
         return ID
 
@@ -84,15 +82,6 @@ class idManager(ABC):
 
     def getPI(self, ID):
         return self.persons[ID]
-
-    # We need the subsystem names because PersonInfo instances
-    # are created from this class -- and we want to know in which
-    # subsystem(s) a developer is active
-    def setSubsysNames(self, subsys_names):
-        self.subsys_names = subsys_names
-
-    def getSubsysNames(self):
-        return self.subsys_names
 
     def _cleanName(self, name):
         # Remove or replace characters in names that are known
@@ -240,7 +229,7 @@ class dbIdManager(idManager):
         # Construct a local instance of PersonInfo for the contributor
         # if it is not yet available
         if ID not in self.persons:
-            self.persons[ID] = PersonInfo(self.subsys_names, ID, name, email)
+            self.persons[ID] = PersonInfo(ID, name, email)
 
         return ID
 
@@ -279,3 +268,77 @@ class dbIdManager(idManager):
 
         return (jsond)
 
+
+class csvIdManager(idManager):
+    """Provide unique IDs for developers.
+
+    This class provides an interface to CSV id files.
+    """
+    def __init__(self, conf):
+        super().__init__()
+
+        # CSV file containing the IDs
+        self.csv_file = conf["csvFile"]
+        self.csv_sep  = conf["csvSeparator"]
+        self.df = self._verifyCsvFile()
+
+    def _verifyCsvFile(self):
+        with open(self.csv_file, "r") as file:
+            df = pandas.read_csv(file, sep=self.csv_sep, names=['ID', 'name', 'email'])
+            return df
+
+    def _addRow(self, name, email):
+
+        # determine next ID
+        max_id = self.df['ID'].max()
+        next_id = 0 if bool(pandas.isna(max_id)) else int(max_id) + 1
+
+        # append new row
+        self.df = self.df._append({
+            'ID': next_id,
+            'name': name,
+            'email': email
+        }, ignore_index=True)
+
+        # dump df to file
+        file = open(self.csv_file, "w")
+        self.df.to_csv(file, sep=self.csv_sep, index=False, header=False)
+
+        return next_id
+
+    def _query_user_id(self, name, email):
+        """Query the ID csv file for a contributor ID"""
+
+        # no name is okay, but no email is not
+        if not email:
+            return -1
+
+        # Match by name and email.
+        # Disregard random string after "could.not.resolve@" in email
+        # to avoid creating multiple entries for the same person.
+        if email.startswith("could.not.resolve@"):
+            rows = self.df[(self.df['name'] == name) &
+                           (self.df['email'].str.startswith("could.not.resolve@"))]
+        else:
+            rows = self.df[(self.df['name'] == name) &
+                           (self.df['email'] == email)]
+
+        if len(rows) == 0:
+            name = '' if not name else name
+            return self._addRow(name, email)
+
+        elif len(rows) == 1:
+            return int(rows['ID'].values[0])
+
+        else:
+            raise Exception("Constructed author list is in invalid format. Duplicate entries found")
+
+    def getPersonFromDB(self, person_id):
+        """Get a PersonInfo instance from the database by ID."""
+        if person_id not in self.persons:
+            rows = self.df[self.df['ID'] == person_id]
+            if len(rows) == 1:
+                name = rows['name'].values[0]
+                email = rows['email'].values[0]
+                self.persons[person_id] = PersonInfo(person_id, name, email)
+        return self.persons.get(person_id, None)
