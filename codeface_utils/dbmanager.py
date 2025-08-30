@@ -21,11 +21,10 @@ from __future__ import absolute_import
 from __future__ import print_function
 import MySQLdb as mdb
 import time
-from datetime import datetime
-from logging import getLogger;
+from datetime import datetime, timezone
+from logging import getLogger
 from contextlib import contextmanager
-from six.moves import range
-from six.moves import zip
+
 
 # create logger
 log = getLogger(__name__)
@@ -57,7 +56,7 @@ class DBManager:
         # self.doExec("SET GLOBAL max_allowed_packet=%s", (max_packet_size,))
 
     def __del__(self):
-        if self.con != None:
+        if self.con is not None:
             self.con.close()
 
     def __openConnection(self, conf):
@@ -478,4 +477,4 @@ class DBManager:
 
 def tstamp_to_sql(tstamp):
     """Convert a Unix timestamp into an SQL compatible DateTime string"""
-    return (datetime.utcfromtimestamp(tstamp).strftime("%Y-%m-%d %H:%M:%S"))
+    return datetime.fromtimestamp(tstamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")

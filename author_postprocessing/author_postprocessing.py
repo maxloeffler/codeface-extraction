@@ -67,7 +67,7 @@ def perform_data_backup(results_path, results_path_backup):
         log.info("Backup folder already exists. No backup is to be performed.")
         return
 
-    for filepath, dirnames, filenames in walk(results_path):
+    for filepath, _, filenames in walk(results_path):
         for filename in filenames:
                 if filename.endswith(".list"):
                     current_file = path.join(filepath, filename)
@@ -119,7 +119,7 @@ def fix_github_browser_commits(data_path, issues_github_list, commits_list, auth
 
 
     # Check for all files in the result directory of the project whether they need to be adjusted
-    for filepath, dirnames, filenames in walk(data_path):
+    for filepath, _, filenames in walk(data_path):
 
         # (1) Remove author 'GitHub <noreply@github.com>' from authors list
         if authors_list in filenames:
@@ -148,7 +148,7 @@ def fix_github_browser_commits(data_path, issues_github_list, commits_list, auth
                 if not is_github_noreply_author(email[0], email[1]):
                     email_data_new.append(email)
                 else:
-                    log.warn("Remove email %s as it was sent by %s <%s>.", email[2], email[0], email[1])
+                    log.warning("Remove email %s as it was sent by %s <%s>.", email[2], email[0], email[1])
             csv_writer.write_to_csv(f, email_data_new)
 
 
@@ -198,19 +198,19 @@ def fix_github_browser_commits(data_path, issues_github_list, commits_list, auth
                         # ignore merge commits in the commit data, we consistently ignore them also if they are added
                         # to a pull request. Hence, the corresponding "commit_added" event will be removed now (i.e.,
                         # not added to the new issue data any more).
-                        log.warn("Commit %s is added in the GitHub issue data, but not part of the commit data. " +
-                                 "Remove the corresponding 'commit_added' event from the issue data...", commit_hash)
+                        log.warning("Commit %s is added in the GitHub issue data, but not part of the commit data. " +
+                                    "Remove the corresponding 'commit_added' event from the issue data...", commit_hash)
                 elif is_github_noreply_author(event[9], event[10]):
                     # the event is authored by 'GitHub <noreply@github.com>', but is not a "commit_added" event, so we
                     # neglect this event and remove it now (i.e., not add it to the new issue data any more).
-                    log.warn("Event %s is authored by %s <%s>. Remove this event form the issue data...",
-                             event[8], event[9], event[10])
+                    log.warning("Event %s is authored by %s <%s>. Remove this event form the issue data...",
+                                event[8], event[9], event[10])
                 elif (is_github_noreply_author(event[12], event[13][1:-1])
                       and (event[8] == mentioned_event or event[8] == subscribed_event)):
                     # the event references 'GitHub <noreply@github.com>', so we neglect this event and remove it now
                     # (i.e., not add it to the new issue data any more).
-                    log.warn("Event %s by %s <%s> references %s <%s>. Remove this event from the issue data...",
-                             event[8], event[9], event[10], event[12], event[13])
+                    log.warning("Event %s by %s <%s> references %s <%s>. Remove this event from the issue data...",
+                                event[8], event[9], event[10], event[12], event[13])
                 else:
                     issue_data_new.append(event)
 
@@ -229,7 +229,7 @@ def fix_github_browser_commits(data_path, issues_github_list, commits_list, auth
                 if not is_github_noreply_author(entry[0], entry[1]):
                     bot_data_new.append(entry)
                 else:
-                    log.warn("Remove entry %s <%s> from bots list.", entry[0], entry[1])
+                    log.warning("Remove entry %s <%s> from bots list.", entry[0], entry[1])
 
             csv_writer.write_to_csv(f, bot_data_new)
 
@@ -285,7 +285,7 @@ def run_postprocessing(conf, resdir, backup_data):
         return
 
     # Check for all files in the result directory of the project whether they need to be adjusted
-    for filepath, dirnames, filenames in walk(data_path):
+    for filepath, _, filenames in walk(data_path):
 
         # (1) Adjust authors lists
         if authors_list in filenames:
@@ -302,7 +302,7 @@ def run_postprocessing(conf, resdir, backup_data):
 
             for author in author_data:
                 # keep author entry only if it should not be removed
-                if not author in author_data_to_remove:
+                if author not in author_data_to_remove:
                     author_data_new.append(author)
             csv_writer.write_to_csv(f, author_data_new)
 

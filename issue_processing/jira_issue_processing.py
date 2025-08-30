@@ -26,13 +26,11 @@ This file is able to extract Jira issue data from xml files.
 import argparse
 import os
 import sys
-import time
 import csv
 import json
 from logging import getLogger
 
 from xml.dom.minidom import parse
-from datetime import datetime
 from dateutil import parser as dateparser
 
 from codeface_utils.cluster.idManager import dbIdManager, csvIdManager
@@ -47,7 +45,6 @@ from time import sleep
 import importlib
 
 importlib.reload(sys)
-sys.setdefaultencoding("utf-8")
 
 
 log = getLogger(__name__)
@@ -294,7 +291,7 @@ def parse_xml(issue_data, persons, skip_history, referenced_bys):
 
         resolved = issue_x.getElementsByTagName("resolved")
         issue["resolveDate"] = ""
-        if (len(resolved) > 0) and (not resolved[0] is None):
+        if (len(resolved) > 0) and (resolved[0] is not None):
             resolveDate = resolved[0].firstChild.data
             issue["resolveDate"] = format_time(resolveDate)
 
@@ -1032,10 +1029,10 @@ def load_csv(source_folder):
         persons_by_username = {}
         persons_by_name = {}
         for row in person_data:
-            if not row["AuthorID"] in list(persons_by_username.keys()):
+            if row["AuthorID"] not in list(persons_by_username.keys()):
                 author_id_utf8 = str(row["AuthorID"]).encode("utf-8")
                 persons_by_username[author_id_utf8] = (row["AuthorName"], row["userEmail"])
-            if not row["AuthorName"] in list(persons_by_name.keys()):
+            if row["AuthorName"] not in list(persons_by_name.keys()):
                 author_name_utf8 = str(row["AuthorName"]).encode("utf-8")
                 persons_by_name[author_name_utf8] = (row["AuthorName"], row["userEmail"])
 

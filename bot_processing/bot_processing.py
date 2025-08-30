@@ -19,12 +19,8 @@ This file is able to extract information on bot/human users from csv files.
 """
 
 import argparse
-import http.client
 import os
 import sys
-import urllib.request, urllib.parse, urllib.error
-
-import operator
 from logging import getLogger
 
 from codeface_utils.configuration import Configuration
@@ -200,7 +196,7 @@ def add_user_data(bot_data, user_data, known_bots_file):
             bot_reduced["prediction"] = user[-1]
             bot_data_reduced.append(bot_reduced)
         else:
-            log.warn("User '{}' in bot data does not occur in GitHub user data. Remove user...".format(user[0]))
+            log.warning("User '{}' in bot data does not occur in GitHub user data. Remove user...".format(user[0]))
 
     # check whether known GitHub bots occur in the GitHub issue data and, if so, update the bot data accordingly
     bot_data_reduced = check_with_known_bot_list(known_bots_file, bot_data, user_buffer, bot_data_reduced)
@@ -227,7 +223,7 @@ def print_to_disk(bot_data, results_folder):
                  user["user"]["email"],
                  user["prediction"]
                 )
-        if not entry in lines:
+        if entry not in lines:
             lines.append(entry)
 
     # write to output file

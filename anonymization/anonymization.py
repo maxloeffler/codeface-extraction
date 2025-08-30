@@ -103,13 +103,13 @@ def run_anonymization(conf, resdir):
 
             # Don't anonymize the deleted user as this one might be needed for filtering (but add it to the dictionary)
             if orig_author == "Deleted user" and orig_email == "ghost@github.com":
-                if not (orig_author, orig_email) in author_to_anonymized_author:
+                if (orig_author, orig_email) not in author_to_anonymized_author:
                     author_to_anonymized_author[(orig_author, orig_email)] = (orig_author, orig_email)
             else:
                 # check whether (name, e-mail) pair isn't already present in the dictionary
-                if not (orig_author, orig_email) in author_to_anonymized_author:
+                if (orig_author, orig_email) not in author_to_anonymized_author:
                         # check if just the name (without e-mail address) isn't already present in the dictionary
-                        if not orig_author in author_to_anonymized_author:
+                        if orig_author not in author_to_anonymized_author:
                             # if the author has an empty name, only anonymize their e-mail address
                             if not author[1] == "":
                                 author[1] = ("developer" + str(i))
@@ -140,7 +140,7 @@ def run_anonymization(conf, resdir):
 
 
     # Check for all files in the result directory of the project whether they need to be anonymized
-    for filepath, dirnames, filenames in walk(data_path):
+    for filepath, _, filenames in walk(data_path):
 
         # (1) Anonymize authors lists
         if authors_list in filenames:
@@ -169,7 +169,7 @@ def run_anonymization(conf, resdir):
             # anonymize authors
             author_data, i, author_to_anonymized_author = \
               anonymize_authors(author_data, i, author_to_anonymized_author)
-          
+
             author_data_gender, i_gender, author_to_anonymized_author_gender = \
               anonymize_authors(author_data_gender, i_gender, author_to_anonymized_author_gender, name_only = True)
 

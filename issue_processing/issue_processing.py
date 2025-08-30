@@ -24,15 +24,12 @@ This file is able to extract Github issue data from json files.
 """
 
 import argparse
-import http.client
 import json
 import os
 import sys
-import urllib.request, urllib.parse, urllib.error
 from datetime import datetime, timedelta
 from logging import getLogger
 
-import operator
 from codeface_utils.cluster.idManager import dbIdManager, csvIdManager
 from codeface_utils.configuration import Configuration
 from codeface_utils.dbmanager import DBManager
@@ -194,7 +191,7 @@ def lookup_user(user_dict, user):
         user["email"] is None or user["email"] == ""):
 
         # lookup user only if username is not None and not empty
-        if not user["username"] is None and not user["username"] == "":
+        if user["username"] is not None and not user["username"] == "":
             user = user_dict[user["username"]]
 
     return user
@@ -213,8 +210,8 @@ def update_user_dict(user_dict, user):
     if user is None:
         user = create_deleted_user()
 
-    if not user["username"] in list(user_dict.keys()):
-        if not user["username"] is None and not user["username"] == "":
+    if user["username"] not in list(user_dict.keys()):
+        if user["username"] is not None and not user["username"] == "":
             user_dict[user["username"]] = user
     else:
         user_in_dict = user_dict[user["username"]]
@@ -425,7 +422,7 @@ def merge_issue_events(issue_data):
         # add dismissal comments to the list of comments
         for event in issue["eventsList"]:
 
-            if (event["event"] == "review_dismissed" and not event["dismissalMessage"] is None
+            if (event["event"] == "review_dismissed" and event["dismissalMessage"] is not None
                and not event["dismissalMessage"] == ""):
                 dismissalComment = dict()
                 dismissalComment["event"] = "commented"
@@ -503,7 +500,7 @@ def merge_issue_events(issue_data):
         issue["eventsList"] = sorted(issue["eventsList"], key=lambda k: k["created_at"])
 
     # updates all the issues by the temporarily stored referenced_by events
-    for key, value in issue_data_to_update.items():
+    for _, value in issue_data_to_update.items():
         for issue in issue_data:
             if issue["number"] == value["number"]:
                 issue["eventsList"] = issue["eventsList"] + value["eventsList"]
@@ -538,7 +535,7 @@ def reformat_events(issue_data):
             users = update_user_dict(users, event["user"])
 
             # 3) add or update users which are ref_target of the current event
-            if not event["ref_target"] is None and not event["ref_target"] == "":
+            if event["ref_target"] is not None and not event["ref_target"] == "":
                 users = update_user_dict(users, event["ref_target"])
 
     # as the user dictionary is created, start re-formating the event information of all issues
@@ -639,7 +636,7 @@ def reformat_events(issue_data):
                 event["event_info_1"] = issue["state_new"]
                 event["event_info_2"] = issue["resolution"]
 
-            elif event["event"] == "referenced" and not event["commit"] is None:
+            elif event["event"] == "referenced" and event["commit"] is not None:
                 # remove "referenced" events originating from commits
                 # as they are handled as referenced commit
                 events_to_remove.append(event)
@@ -729,9 +726,9 @@ def insert_user_data(issues, conf, resdir):
         log.info("Passing user id '{}' to ID service.".format(idx))
         person = idservice.getPersonFromDB(idx)
         user = dict()
-        user["email"] = person["email1"]  # column "email1"
-        user["name"] = person["name"]  # column "name"
-        user["id"] = person["id"]  # column "id"
+        user["email"] = person.getEmail()  # column "email1"
+        user["name"] = person.getName()  # column "name"
+        user["id"] = person.getID()  # column "id"
 
         # add user information to buffer
         buffer_db[idx] = user

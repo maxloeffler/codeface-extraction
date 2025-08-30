@@ -18,20 +18,21 @@
 from __future__ import absolute_import
 import re
 from email.utils import parseaddr
-from logging import getLogger; log = getLogger(__name__)
-import six.moves.http_client
-import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+from logging import getLogger
+import http.client as http_client
+import urllib.parse as urlparse
 import json
 import string
 import random
 import time
-from ..util import encode_as_utf8
-from six.moves import range
 from abc import ABC, abstractmethod
 import pandas
 
 from codeface_utils.cluster.PersonInfo import PersonInfo
+from ..util import encode_as_utf8
 
+
+log = getLogger(__name__)
 
 class idManager(ABC):
 
@@ -130,7 +131,7 @@ class idManager(ABC):
                     # print("Fixup for email required, but FAILED for {0}".format(addr))
                     name = addr
                     rand_str = "".join(random.choice(string.ascii_lowercase + string.digits)
-                                       for i in range(10))
+                                       for _ in range(10))
                     email = "could.not.resolve@" + rand_str
 
         email = email.lower()
@@ -153,7 +154,7 @@ class dbIdManager(idManager):
 
         self._idMgrServer = conf["idServiceHostname"]
         self._idMgrPort = conf["idServicePort"]
-        self._conn = six.moves.http_client.HTTPConnection(self._idMgrServer, self._idMgrPort)
+        self._conn = http_client.HTTPConnection(self._idMgrServer, self._idMgrPort)
 
         # Create a project ID
         self._dbm = dbm
@@ -172,9 +173,9 @@ class dbIdManager(idManager):
         """Query the ID database for a contributor ID"""
 
         name = encode_as_utf8(name)
-        params = six.moves.urllib.parse.urlencode({'projectID': self._projectID,
-                                   'name': name,
-                                   'email': email})
+        params = urlparse.urlencode({'projectID': self._projectID,
+                                     'name': name,
+                                     'email': email})
 
         try:
             self._conn.request("POST", "/post_user_id", params, self.headers)
@@ -184,9 +185,9 @@ class dbIdManager(idManager):
             successful = False
             while (retryCount <= 10 and not successful):
                 log.warning("Could not reach ID service. Try to reconnect " \
-                            "(attempt {}).".format(retryCount));
+                            "(attempt {}).".format(retryCount))
                 self._conn.close()
-                self._conn = six.moves.http_client.HTTPConnection(self._idMgrServer, self._idMgrPort)
+                self._conn = http_client.HTTPConnection(self._idMgrServer, self._idMgrPort)
                 time.sleep(60)
                 #self._conn.ping(True)
                 try:
@@ -222,7 +223,7 @@ class dbIdManager(idManager):
         """
 
         (name, email) = self._decompose_addr(addr)
-        if not (name, email) in self._cache:
+        if (name, email) not in self._cache:
             self._cache[(name, email)] = self._query_user_id(name, email)
         ID = self._cache[(name, email)]
 
@@ -241,14 +242,14 @@ class dbIdManager(idManager):
             res = self._conn.getresponse()
         except:
             self._conn.close()
-            self._conn = six.moves.http_client.HTTPConnection(self._idMgrServer, self._idMgrPort)
+            self._conn = http_client.HTTPConnection(self._idMgrServer, self._idMgrPort)
             retryCount = 0
             successful = False
             while (retryCount <= 10 and not successful):
                 log.warning("Could not reach ID service. Try to reconnect " \
-                            "(attempt {}).".format(retryCount));
+                            "(attempt {}).".format(retryCount))
                 self._conn.close()
-                self._conn = six.moves.http_client.HTTPConnection(self._idMgrServer, self._idMgrPort)
+                self._conn = http_client.HTTPConnection(self._idMgrServer, self._idMgrPort)
                 time.sleep(60)
                 #self._conn.ping(True)
                 try:
