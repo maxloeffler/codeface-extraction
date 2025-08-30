@@ -30,15 +30,18 @@ import os
 import sys
 import urllib.request, urllib.parse, urllib.error
 from datetime import datetime, timedelta
+from logging import getLogger
 
 import operator
-from codeface.cli import log
-from codeface.cluster.idManager import idManager
-from codeface.configuration import Configuration
-from codeface.dbmanager import DBManager
+from codeface_utils.cluster.idManager import dbIdManager, csvIdManager
+from codeface_utils.configuration import Configuration
+from codeface_utils.dbmanager import DBManager
 from dateutil import parser as dateparser
 
 from csv_writer import csv_writer
+
+
+log = getLogger(__name__)
 
 # known types from JIRA and GitHub default labels
 known_types = {"bug", "improvement", "enhancement", "new feature", "task", "test", "wish"}
@@ -95,7 +98,7 @@ def load(source_folder):
     """
 
     srcfile = os.path.join(source_folder, "issues.json")
-    log.devinfo("Loading Github issues from file '{}'...".format(srcfile))
+    log.info("Loading Github issues from file '{}'...".format(srcfile))
 
     # check if file exists and exit early if not
     if not os.path.exists(srcfile):
@@ -232,7 +235,7 @@ def reformat_issues(issue_data):
     :return: the re-arranged issue data
     """
 
-    log.devinfo("Re-arranging Github issues...")
+    log.info("Re-arranging Github issues...")
 
     # re-process all issues
     for issue in issue_data:
@@ -670,10 +673,13 @@ def insert_user_data(issues, conf, resdir):
     user_id_buffer = dict()
     # create buffer for usernames (key: username)
     username_id_buffer = dict()
-    # open database connection
-    dbm = DBManager(conf)
-    # open ID-service connection
-    idservice = idManager(dbm, conf)
+
+    # connect to ID service
+    if conf["useCsv"]:
+        idservice = csvIdManager(conf)
+    else:
+        dbm = DBManager(conf)
+        idservice = dbIdManager(dbm, conf)
 
     def get_user_string(name, email):
         if not email or email is None:
@@ -683,26 +689,23 @@ def insert_user_data(issues, conf, resdir):
             return "{name} <{email}>".format(name=name, email=email)
 
     def get_id_and_update_user(user, buffer_db_ids=user_id_buffer, buffer_usernames=username_id_buffer):
-        username = str(user["username"]).encode("utf-8")
 
         # fix encoding for name and e-mail address
-        if user["name"] is not None:
-            name = str(user["name"]).encode("utf-8")
-        else:
-            name = username
-        mail = str(user["email"]).encode("utf-8")
+        name = user["name"] if "name" in user else str(user["username"])
+        mail = user["email"] # empty
+
         # construct string for ID service and send query
         user_string = get_user_string(name, mail)
 
         # check buffer to reduce amount of DB queries
         if user_string in buffer_db_ids:
-            log.devinfo("Returning person id for user '{}' from buffer.".format(user_string))
+            log.info("Returning person id for user '{}' from buffer.".format(user_string))
             if username is not None:
                 buffer_usernames[username] = buffer_db_ids[user_string]
             return buffer_db_ids[user_string]
 
         # get person information from ID service
-        log.devinfo("Passing user '{}' to ID service.".format(user_string))
+        log.info("Passing user '{}' to ID service.".format(user_string))
         idx = idservice.getPersonID(user_string)
 
         # add user information to buffer
@@ -719,11 +722,11 @@ def insert_user_data(issues, conf, resdir):
 
         # check whether user information is in buffer to reduce amount of DB queries
         if idx in buffer_db:
-            log.devinfo("Returning user '{}' from buffer.".format(idx))
+            log.info("Returning user '{}' from buffer.".format(idx))
             return buffer_db[idx]
 
         # get person information from ID service
-        log.devinfo("Passing user id '{}' to ID service.".format(idx))
+        log.info("Passing user id '{}' to ID service.".format(idx))
         person = idservice.getPersonFromDB(idx)
         user = dict()
         user["email"] = person["email1"]  # column "email1"

@@ -29,15 +29,15 @@ import sys
 import time
 import csv
 import json
+from logging import getLogger
 
 from xml.dom.minidom import parse
 from datetime import datetime
 from dateutil import parser as dateparser
 
-from codeface.cli import log
-from codeface.cluster.idManager import idManager
-from codeface.configuration import Configuration
-from codeface.dbmanager import DBManager
+from codeface_utils.cluster.idManager import dbIdManager, csvIdManager
+from codeface_utils.configuration import Configuration
+from codeface_utils.dbmanager import DBManager
 
 from csv_writer import csv_writer
 
@@ -48,6 +48,9 @@ import importlib
 
 importlib.reload(sys)
 sys.setdefaultencoding("utf-8")
+
+
+log = getLogger(__name__)
 
 # global counter for JIRA requests to make sure to not exceed the request limit
 jira_request_counter = 0
@@ -173,7 +176,7 @@ def load_xml(source_folder, xml_file):
     """
 
     srcfile = os.path.join(source_folder, xml_file)
-    log.devinfo("Loading issues from file '{}'...".format(srcfile))
+    log.info("Loading issues from file '{}'...".format(srcfile))
 
     try:
         # parse the xml-file
@@ -373,7 +376,7 @@ def parse_xml(issue_data, persons, skip_history, referenced_bys):
 
             text = comment_x.firstChild
             if text is None:
-                log.warn("Empty comment in issue " + issue["id"])
+                log.warning("Empty comment in issue " + issue["id"])
                 comment["text"] = ""
             else:
                 comment["text"] = text.data
@@ -441,7 +444,7 @@ def load_issues_via_api(issues, persons, url, referenced_bys):
             api_issue = jira_project.issue(issue["externalId"], expand="changelog")
             changelog = api_issue.changelog
         except JIRAError:
-            log.warn("JIRA Error: Changelog cannot be extracted for issue " + issue["externalId"] + ". History omitted!")
+            log.warning("JIRA Error: Changelog cannot be extracted for issue " + issue["externalId"] + ". History omitted!")
             changelog = None
 
         histories = list()
@@ -479,7 +482,7 @@ def load_issues_via_api(issues, persons, url, referenced_bys):
                         if hasattr(change, "author"):
                             user = create_user(change.author.displayName, change.author.name, "")
                         else:
-                            log.warn("No author for history: " + str(change.id) + " created at " + str(change.created))
+                            log.warning("No author for history: " + str(change.id) + " created at " + str(change.created))
                             user = create_user("","","")
                         history["author"] = merge_user_with_user_from_csv(user, persons)
                         history["date"] = format_time(change.created)
@@ -499,7 +502,7 @@ def load_issues_via_api(issues, persons, url, referenced_bys):
                         if hasattr(change, "author"):
                             user = create_user(change.author.displayName, change.author.name, "")
                         else:
-                            log.warn("No author for history: " + str(change.id) + " created at " + str(change.created))
+                            log.warning("No author for history: " + str(change.id) + " created at " + str(change.created))
                             user = create_user("","","")
                         history["author"] = merge_user_with_user_from_csv(user, persons)
                         history["date"] = format_time(change.created)
@@ -591,10 +594,13 @@ def insert_user_data(issues, conf):
     user_buffer = dict()
     # create buffer for user ids (key: user string)
     user_id_buffer = dict()
-    # open database connection
-    dbm = DBManager(conf)
-    # open ID-service connection
-    idservice = idManager(dbm, conf)
+
+    # connect to ID service
+    if conf["useCsv"]:
+        idservice = csvIdManager(conf)
+    else:
+        dbm = DBManager(conf)
+        idservice = dbIdManager(dbm, conf)
 
     def get_user_string(name, email):
         if not email or email is None:
@@ -604,22 +610,21 @@ def insert_user_data(issues, conf):
             return "{name} <{email}>".format(name=name, email=email)
 
     def get_id_and_update_user(user, buffer_db_ids=user_id_buffer):
+
         # fix encoding for name and e-mail address
-        if user["name"] is not None and user["name"] != "":
-            name = str(user["name"]).encode("utf-8")
-        else:
-            name = str(user["username"]).encode("utf-8")
-        mail = str(user["email"]).encode("utf-8")  # empty
+        name = user["name"] if "name" in user else str(user["username"])
+        mail = user["email"]
+
         # construct string for ID service and send query
         user_string = get_user_string(name, mail)
 
         # check buffer to reduce amount of DB queries
         if user_string in buffer_db_ids:
-            log.devinfo("Returning person id for user '{}' from buffer.".format(user_string))
+            log.info("Returning person id for user '{}' from buffer.".format(user_string))
             return buffer_db_ids[user_string]
 
         # get person information from ID service
-        log.devinfo("Passing user '{}' to ID service.".format(user_string))
+        log.info("Passing user '{}' to ID service.".format(user_string))
         idx = idservice.getPersonID(user_string)
 
         # add user information to buffer
@@ -632,11 +637,11 @@ def insert_user_data(issues, conf):
 
         # check whether user information is in buffer to reduce amount of DB queries
         if idx in buffer_db:
-            log.devinfo("Returning user '{}' from buffer.".format(idx))
+            log.info("Returning user '{}' from buffer.".format(idx))
             return buffer_db[idx]
 
         # get person information from ID service
-        log.devinfo("Passing user id '{}' to ID service.".format(idx))
+        log.info("Passing user id '{}' to ID service.".format(idx))
         person = idservice.getPersonFromDB(idx)
         user = dict()
         user["email"] = person["email1"]  # column "email1"
@@ -1021,7 +1026,7 @@ def load_csv(source_folder):
         log.error("Person files '{}' do not exist! Exiting early...".format(person_files))
         sys.exit(-1)
 
-    log.devinfo("Loading person csv from file '{}'...".format(srcfile))
+    log.info("Loading person csv from file '{}'...".format(srcfile))
     with open(srcfile, "r") as f:
         person_data = csv.DictReader(f, delimiter=",", skipinitialspace=True)
         persons_by_username = {}

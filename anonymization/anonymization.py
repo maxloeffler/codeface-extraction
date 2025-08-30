@@ -29,14 +29,13 @@ import argparse
 import sys
 from os import path, walk, makedirs
 from os.path import abspath
-from shutil import copy
+from logging import getLogger
 
-from codeface.cli import log
-from codeface.configuration import Configuration
-from codeface.dbmanager import DBManager
-
+from codeface_utils.configuration import Configuration
 from csv_writer import csv_writer
 
+
+log = getLogger(__name__)
 
 ##
 # RUN POSTPROCESSING

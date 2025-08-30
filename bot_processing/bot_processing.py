@@ -25,10 +25,13 @@ import sys
 import urllib.request, urllib.parse, urllib.error
 
 import operator
-from codeface.cli import log
-from codeface.configuration import Configuration
+from logging import getLogger
 
+from codeface_utils.configuration import Configuration
 from csv_writer import csv_writer
+
+
+log = getLogger(__name__)
 
 def run():
     # get all needed paths and arguments for the method call.
@@ -75,7 +78,7 @@ def load_bot_data(bot_file, header = True):
     :return: the read bot data
     """
 
-    log.devinfo("Read bot data from file '{}'...".format(bot_file))
+    log.info("Read bot data from file '{}'...".format(bot_file))
 
     # check if file exists and exit early if not
     if not os.path.exists(bot_file):
@@ -99,7 +102,7 @@ def load_user_data(user_data_file):
     :return: the read user data
     """
 
-    log.devinfo("Read user data from file '{}'...".format(user_data_file))
+    log.info("Read user data from file '{}'...".format(user_data_file))
 
     # check if file exists and exit early if not
     if not os.path.exists(user_data_file):
