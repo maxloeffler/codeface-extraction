@@ -27,8 +27,8 @@ from os.path import abspath
 
 from . import extractions
 from csv_writer import csv_writer
-from codeface.dbmanager import DBManager
-from codeface.configuration import Configuration
+from codeface_utils.dbmanager import DBManager
+from codeface_utils.configuration import Configuration
 
 # create logger
 log = getLogger(__name__)

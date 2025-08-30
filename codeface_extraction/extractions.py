@@ -30,7 +30,8 @@ from logging import getLogger
 from ftfy import fix_encoding
 from email.header import decode_header, make_header
 
-from codeface.util import gen_range_path
+from codeface_utils.util import gen_range_path
+
 
 log = getLogger(__name__)
 
