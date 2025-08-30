@@ -19,12 +19,8 @@ This file is able to extract information on bot/human users from csv files.
 """
 
 import argparse
-import http.client
 import os
 import sys
-import urllib.request, urllib.parse, urllib.error
-
-import operator
 from logging import getLogger
 
 from codeface_utils.configuration import Configuration

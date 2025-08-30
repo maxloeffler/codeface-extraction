@@ -45,14 +45,13 @@ def write_to_csv(file_path, lines, append=False):
     :param append: Flag if lines shall be appended to file or overwrite file
     """
 
-    open_mode = "a+b" if append else "wb"
+    open_mode = "a" if append else "w"
 
-    with open(file_path, open_mode) as csv_file:
+    with open(file_path, mode=open_mode, encoding="utf-8") as csv_file:
         wr = csv.writer(csv_file, delimiter=';', lineterminator='\n', quoting=csv.QUOTE_NONNUMERIC)
         # encode in proper UTF-8 before writing to file
         for line in lines:
-            line_encoded = __encode(line)
-            wr.writerow(line_encoded)
+            wr.writerow(line)
 
 def read_from_csv(file_path, delimiter=";"):
     """
