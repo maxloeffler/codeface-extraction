@@ -15,6 +15,7 @@
 # Copyright 2015-2017 by Claus Hunsen <hunsen@fim.uni-passau.de>
 # Copyright 2021 by Thomas Bock <bockthom@cs.uni-saarland.de>
 # Copyright 2022 by Christian Hechtl <hechtl@cs.uni-saarland.de>
+# Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
 This file is able to anonymize authors and issue titles after the extraction from the Codeface database was performed.

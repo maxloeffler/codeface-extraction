@@ -17,7 +17,7 @@
 # Copyright 2018 by Barbara Eckl <ecklbarb@fim.uni-passau.de>
 # Copyright 2018-2019 by Anselm Fehnker <fehnker@fim.uni-passau.de>
 # Copyright 2020-2021 by Thomas Bock <bockthom@cs.uni-saarland.de>
-# Copyright 2023 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
+# Copyright 2023, 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
 This file is able to extract Jira issue data from xml files.

@@ -1,6 +1,6 @@
-# This file is part of Codeface. Codeface is free software: you can
-# redistribute it and/or modify it under the terms of the GNU General Public
-# License as published by the Free Software Foundation, version 2.
+# This file is part of codeface-extraction, which is free software: you
+# can redistribute it and/or modify it under the terms of the GNU General
+# Public License as published by the Free Software Foundation, version 2.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -12,7 +12,12 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
+# Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
+#
+# The code in this file originates from:
+# https://github.com/siemens/codeface/blob/master/codeface/configuration.py
+
 '''
 Configuration module for codeface
 

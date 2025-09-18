@@ -13,6 +13,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # Copyright 2021-2022 by Thomas Bock <bockthom@cs.uni-saarland.de>
+# Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
 This file is able to extract information on bot/human users from csv files.

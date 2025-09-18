@@ -1,6 +1,6 @@
-# This file is part of Codeface. Codeface is free software: you can
-# redistribute it and/or modify it under the terms of the GNU General Public
-# License as published by the Free Software Foundation, version 2.
+# This file is part of codeface-extraction, which is free software: you
+# can redistribute it and/or modify it under the terms of the GNU General
+# Public License as published by the Free Software Foundation, version 2.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -14,6 +14,9 @@
 # Copyright 2010, 2011 by Wolfgang Mauerer <wm@linux-kernel.net>
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
+#
+# The code in this file originates from:
+# https://github.com/siemens/codeface/blob/master/codeface/cluster/PersonInfo.py
 
 from __future__ import absolute_import
 

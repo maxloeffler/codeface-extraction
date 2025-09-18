@@ -15,6 +15,7 @@
 # Copyright 2015-2017 by Claus Hunsen <hunsen@fim.uni-passau.de>
 # Copyright 2016, 2018-2019 by Thomas Bock <bockthom@fim.uni-passau.de>
 # Copyright 2018 by Barbara Eckl <ecklbarb@fim.uni-passau.de>
+# Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
 This file is able to extract developer--artifact relations from the Codeface database.

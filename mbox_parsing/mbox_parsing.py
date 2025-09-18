@@ -15,6 +15,7 @@
 # Copyright 2017 by Raphael Nömmer <noemmer@fim.uni-passau.de>
 # Copyright 2017-2019 by Claus Hunsen <hunsen@fim.uni-passau.de>
 # Copyright 2018-2019 by Thomas Bock <bockthom@fim.uni-passau.de>
+# Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
 This file is able to extract artifact occurrences in e-mail within mbox files.

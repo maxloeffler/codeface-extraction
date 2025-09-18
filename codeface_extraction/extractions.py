@@ -17,6 +17,7 @@
 # Copyright 2019, 2021 by Thomas Bock <bockthom@cs.uni-saarland.de>
 # Copyright 2018 by Barbara Eckl <ecklbarb@fim.uni-passau.de>
 # Copyright 2018 by Tina Schuh <schuht@fim.uni-passau.de>
+# Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
 This file provides the class 'Extraction' and all of its subclasses.

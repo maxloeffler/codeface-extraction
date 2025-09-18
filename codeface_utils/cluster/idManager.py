@@ -1,6 +1,6 @@
-# This file is part of Codeface. Codeface is free software: you can
-# redistribute it and/or modify it under the terms of the GNU General Public
-# License as published by the Free Software Foundation, version 2.
+# This file is part of codeface-extraction, which is free software: you
+# can redistribute it and/or modify it under the terms of the GNU General
+# Public License as published by the Free Software Foundation, version 2.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -13,7 +13,13 @@
 #
 # Copyright 2010, 2011 by Wolfgang Mauerer <wm@linux-kernel.net>
 # Copyright 2012, 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
+# Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
+#
+# The code in this file originates from:
+# https://github.com/siemens/codeface/blob/master/codeface/cluster/idManager.py
+# We inherit the 'idManager' and 'dbIdManager' classes from codeface.
+# The 'csvManager' class is original.
 
 from __future__ import absolute_import
 import re
