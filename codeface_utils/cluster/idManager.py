@@ -34,7 +34,6 @@ import time
 from abc import ABC, abstractmethod
 import pandas
 
-from codeface_utils.cluster.PersonInfo import PersonInfo
 from ..util import encode_as_utf8
 
 
@@ -45,13 +44,6 @@ class idManager(ABC):
     def __init__(self):
         # Cache identical requests to the server
         self._cache = {}
-
-        # Map IDs to an instance of PersonInfo
-        self.persons = {}
-
-        # Map a name, email address, or a combination of both to the numeric ID
-        # assigned to the developer
-        self.person_ids = {}
 
         self.fixup_emailPattern = re.compile(r'([^<]+)\s+<([^>]+)>')
         self.commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
@@ -65,30 +57,14 @@ class idManager(ABC):
         pass
 
     def getPersonID(self, addr):
-        """Obtain a unique ID from contributor identity credentials.
-
-        The IDs are managed by a central csv file.
-        Managing multiple identities for the same person is also
-        handled there.
-        """
+        """Obtain a unique ID from contributor identity credentials."""
 
         (name, email) = self._decompose_addr(addr)
         if (name, email) not in self._cache:
             self._cache[(name, email)] = self._query_user_id(name, email)
         ID = self._cache[(name, email)]
 
-        # Construct a local instance of PersonInfo for the contributor
-        # if it is not yet available
-        if (ID not in self.persons):
-            self.persons[ID] = PersonInfo(ID, name, email)
-
         return ID
-
-    def getPersons(self):
-        return self.persons
-
-    def getPI(self, ID):
-        return self.persons[ID]
 
     def _cleanName(self, name):
         # Remove or replace characters in names that are known
@@ -218,27 +194,6 @@ class dbIdManager(idManager):
             raise Exception("Bad response from server: '{}'".format(jsond))
 
         return (id)
-
-    def getPersonID(self, addr):
-        """Obtain a unique ID from contributor identity credentials.
-
-        The IDs are managed by a central database accessed via REST.
-        Managing multiple identities for the same person is also
-        handled there. Safety against concurrent access is provided by
-        the database.
-        """
-
-        (name, email) = self._decompose_addr(addr)
-        if (name, email) not in self._cache:
-            self._cache[(name, email)] = self._query_user_id(name, email)
-        ID = self._cache[(name, email)]
-
-        # Construct a local instance of PersonInfo for the contributor
-        # if it is not yet available
-        if ID not in self.persons:
-            self.persons[ID] = PersonInfo(ID, name, email)
-
-        return ID
 
     def getPersonFromDB(self, person_id):
         """Query the ID database for a contributor and all corresponding data"""

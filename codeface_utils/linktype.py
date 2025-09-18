@@ -18,8 +18,6 @@
 # The code in this file originates from:
 # https://github.com/siemens/codeface/blob/master/codeface/linktype.py
 
-__author__ = 'drag0on'
-
 
 #enum-like class to distinguish between the various
 #methods used to link individuals
