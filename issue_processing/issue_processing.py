@@ -727,10 +727,11 @@ def insert_user_data(issues, conf, resdir):
         # get person information from ID service
         log.info("Passing user id '{}' to ID service.".format(idx))
         person = idservice.getPersonFromDB(idx)
-        user = dict()
-        user["email"] = person.getEmail()  # column "email1"
-        user["name"] = person.getName()  # column "name"
-        user["id"] = person.getID()  # column "id"
+        user = {
+            "name": person["name"],
+            "email": person["email1"],
+            "id": person["id"]
+        }
 
         # add user information to buffer
         buffer_db[idx] = user

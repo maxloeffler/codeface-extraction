@@ -640,10 +640,11 @@ def insert_user_data(issues, conf):
         # get person information from ID service
         log.info("Passing user id '{}' to ID service.".format(idx))
         person = idservice.getPersonFromDB(idx)
-        user = dict()
-        user["email"] = person["email1"]  # column "email1"
-        user["name"] = person["name"]  # column "name"
-        user["id"] = person["id"]  # column "id"
+        user = {
+            "name": person["name"],
+            "email": person["email1"],
+            "id": person["id"]
+        }
 
         # add user information to buffer
         buffer_db[idx] = user

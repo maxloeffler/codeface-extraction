@@ -296,11 +296,10 @@ class csvIdManager(idManager):
             raise Exception("Constructed author list is in invalid format. Duplicate entries found")
 
     def getPersonFromDB(self, person_id):
-        """Get a PersonInfo instance from the database by ID."""
-        if person_id not in self.persons:
-            rows = self.df[self.df['ID'] == person_id]
-            if len(rows) == 1:
-                name = rows['name'].values[0]
-                email = rows['email'].values[0]
-                self.persons[person_id] = PersonInfo(person_id, name, email)
-        return self.persons.get(person_id, None)
+        rows = self.df[self.df['ID'] == person_id]
+        if len(rows) == 1:
+            return {
+                'name': rows['name'].values[0],
+                'email1': rows['email'].values[0],
+                'id': person_id
+            }
