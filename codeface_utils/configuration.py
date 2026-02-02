@@ -13,6 +13,7 @@
 #
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
+# Copyright 2026 by Thomas Bock <bockthom@cmu.edu>
 # All Rights Reserved.
 #
 # The code in this file originates from:
@@ -121,6 +122,9 @@ class Configuration(Mapping):
             self._conf["dbport"] = 3306
         else:
             self._conf["dbport"] = int(self._conf["dbport"])
+
+        if "useCsv" not in self:
+            self._conf["useCsv"] = False
 
     def _check_sanity(self):
         '''
