@@ -13,6 +13,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # Copyright 2021-2022 by Thomas Bock <bockthom@cs.uni-saarland.de>
+# Copyright 2026 by Thomas Bock <bockthom@cmu.edu>
 # Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
@@ -27,7 +28,8 @@ from logging import getLogger
 from codeface_utils.configuration import Configuration
 from csv_writer import csv_writer
 
-
+# create logger
+setup_logging()
 log = getLogger(__name__)
 
 def run():

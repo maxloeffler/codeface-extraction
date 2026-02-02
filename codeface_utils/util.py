@@ -13,6 +13,7 @@
 #
 # Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
+# Copyright 2026 by Thomas Bock <bockthom@cmu.edu>
 # All Rights Reserved.
 #
 # The code in this file originates from:
@@ -29,6 +30,11 @@ import unicodedata
 from threading import enumerate as threading_enumerate
 from ftfy import fix_encoding
 
+def setup_logging(level=logging.INFO):
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s [%(name)s] %(levelname)s: %(message)s'
+    )
 
 log = logging.getLogger(__name__)
 

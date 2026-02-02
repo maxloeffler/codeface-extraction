@@ -14,6 +14,7 @@
 #
 # Copyright 2015-2017 by Claus Hunsen <hunsen@fim.uni-passau.de>
 # Copyright 2021 by Thomas Bock <bockthom@cs.uni-saarland.de>
+# Copyright 2026 by Thomas Bock <bockthom@cmu.edu>
 # Copyright 2022 by Christian Hechtl <hechtl@cs.uni-saarland.de>
 # Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
@@ -35,7 +36,8 @@ from logging import getLogger
 from codeface_utils.configuration import Configuration
 from csv_writer import csv_writer
 
-
+# create logger
+setup_logging()
 log = getLogger(__name__)
 
 ##
@@ -334,7 +336,7 @@ def run_anonymization(conf, resdir):
                 makedirs(path.dirname(output_path))
             log.info("Write anonymized data to %s ...", output_path)
             csv_writer.write_to_csv(output_path, bot_data)
-        
+
         # (8) Anonymize gender list
         if gender_list in filenames:
             f = path.join(filepath, gender_list)

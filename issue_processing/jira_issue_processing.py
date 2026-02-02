@@ -17,6 +17,7 @@
 # Copyright 2018 by Barbara Eckl <ecklbarb@fim.uni-passau.de>
 # Copyright 2018-2019 by Anselm Fehnker <fehnker@fim.uni-passau.de>
 # Copyright 2020-2021 by Thomas Bock <bockthom@cs.uni-saarland.de>
+# Copyright 2026 by Thomas Bock <bockthom@cmu.edu>
 # Copyright 2023, 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
@@ -46,7 +47,8 @@ import importlib
 
 importlib.reload(sys)
 
-
+# create logger
+setup_logging()
 log = getLogger(__name__)
 
 # global counter for JIRA requests to make sure to not exceed the request limit

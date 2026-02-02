@@ -15,6 +15,7 @@
 # Copyright 2017 by Raphael Nömmer <noemmer@fim.uni-passau.de>
 # Copyright 2017-2019 by Claus Hunsen <hunsen@fim.uni-passau.de>
 # Copyright 2018-2019 by Thomas Bock <bockthom@fim.uni-passau.de>
+# Copyright 2026 by Thomas Bock <bockthom@cmu.edu>
 # Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
 """
@@ -40,7 +41,8 @@ from whoosh.qparser import QueryParser
 from codeface_utils.configuration import Configuration
 from csv_writer import csv_writer
 
-
+# create logger
+setup_logging()
 log = getLogger(__name__)
 
 def __get_index(mbox, mbox_path, results_folder, schema, reindex):

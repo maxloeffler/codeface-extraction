@@ -14,6 +14,7 @@
 #
 # Copyright 2015-2017 by Claus Hunsen <hunsen@fim.uni-passau.de>
 # Copyright 2016, 2018-2019 by Thomas Bock <bockthom@fim.uni-passau.de>
+# Copyright 2026 by Thomas Bock <bockthom@cmu.edu>
 # Copyright 2018 by Barbara Eckl <ecklbarb@fim.uni-passau.de>
 # Copyright 2025 by Maximilian Löffler <s8maloef@stud.uni-saarland.de>
 # All Rights Reserved.
@@ -30,8 +31,10 @@ from . import extractions
 from csv_writer import csv_writer
 from codeface_utils.dbmanager import DBManager
 from codeface_utils.configuration import Configuration
+from codeface_utils.util import setup_logging
 
 # create logger
+setup_logging()
 log = getLogger(__name__)
 
 ##
